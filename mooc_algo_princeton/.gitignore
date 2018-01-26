@@ -1,0 +1,13 @@
+# compile java classes
+*.class
+
+# eclipse related files & folders
+.metadata/
+.settings/
+.project
+.classpath
+
+# Course submissions
+*.zip
+
+# eclipse
