@@ -3,14 +3,16 @@ import edu.princeton.cs.algs4.WeightedQuickUnionUF;
 
 public class Percolation {
     
-   
-    private static final boolean OPEN = true;
+    private static final int CLOSE = 0;
+    private static final int OPEN = 1;
+    private static final int TOP = 2;
+    private static final int BOTTOM = 4;
+    private static final int TOP_BOTTOM_OPEN = 7;
     
     private boolean doesPercolate = false;
-    private boolean[] grid;
+    
+    private int[] grid;
     private final WeightedQuickUnionUF unionFind;
-    private final int topNodeIdx, 
-                      bottomNodeIdx;
     private final int gridSize;
     private final String outOfBoundsError;
     private int numOpenSites = 0;
@@ -25,11 +27,9 @@ public class Percolation {
         }
 
         gridSize = n;
-        grid = new boolean[n*n];
-        topNodeIdx = (n*n);
-        bottomNodeIdx = (n*n) + 1;
+        grid = new int[n*n];
         // n*n for all cells in grid, 1 each for virtual top and bottom
-        unionFind = new WeightedQuickUnionUF((n*n) + 2);
+        unionFind = new WeightedQuickUnionUF((n*n));
         outOfBoundsError = String.format("Row / Column values must be within 1 and %d", gridSize);
     }
 
@@ -55,7 +55,7 @@ public class Percolation {
         int thisNodeIdx = subToInd(row, col),
             neighbourIdx = -1;
 
-        if (grid[thisNodeIdx] == OPEN) {
+        if (grid[thisNodeIdx] != CLOSE) {
             // NO WORK TO BE DONE HERE
             return;
         }
@@ -68,45 +68,58 @@ public class Percolation {
 
 
         if (row == 1) {
-            unionFind.union(thisNodeIdx, topNodeIdx);
+            grid[thisNodeIdx] |= TOP;
             skipMoveUp = true;
 
         }
 
         if (row == gridSize) {
-            unionFind.union(thisNodeIdx, bottomNodeIdx);
+            grid[thisNodeIdx] |= BOTTOM;
             skipMoveDown = true;
         }
 
 
-    if (!skipMoveUp) {
-        neighbourIdx = subToInd(row - 1, col);
-        if (grid[neighbourIdx] == OPEN) {
-            unionFind.union(neighbourIdx, thisNodeIdx);
-        }			
-    }
+        if (!skipMoveUp) {
+            neighbourIdx = subToInd(row - 1, col);
+            grid[thisNodeIdx] |= grid[unionFind.find(neighbourIdx)];
+            if ((grid[neighbourIdx] & OPEN) == 1) {
+                unionFind.union(neighbourIdx, thisNodeIdx);
+            }
+        }
 
         if (!skipMoveDown) {
             neighbourIdx = subToInd(row + 1, col);
-            if (grid[neighbourIdx] == OPEN) {
+            grid[thisNodeIdx] |= grid[unionFind.find(neighbourIdx)];
+            
+            if ((grid[neighbourIdx] & OPEN) == 1) {
                 unionFind.union(neighbourIdx, thisNodeIdx);
             }
         }
 
         if (col != 1) {
             neighbourIdx = subToInd(row, col - 1);
-            if (grid[neighbourIdx] == OPEN) {
+            grid[thisNodeIdx] |= grid[unionFind.find(neighbourIdx)];
+            
+            if ((grid[neighbourIdx] & OPEN) == 1) {
                 unionFind.union(neighbourIdx, thisNodeIdx);
             }
         }
 
         if (col != gridSize) {
             neighbourIdx = subToInd(row, col + 1);
-            if (grid[neighbourIdx] == OPEN) {
+            grid[thisNodeIdx] |= grid[unionFind.find(neighbourIdx)];
+            
+            if ((grid[neighbourIdx] & OPEN) == 1) {
                 unionFind.union(neighbourIdx, thisNodeIdx);
             }
         }
+        
+        grid[unionFind.find(thisNodeIdx)] = grid[thisNodeIdx];
 
+        // If the new node is connected to TOP BOTTOM & IS OPEN then the system percolates
+        if (grid[thisNodeIdx] == TOP_BOTTOM_OPEN) {
+            doesPercolate = true;
+        }
     }
 
     /**
@@ -114,15 +127,16 @@ public class Percolation {
      */
     public boolean isOpen(int row, int col) {
         int thisNode = subToInd(row, col);
-        return grid[thisNode];
+        return ((grid[thisNode] & OPEN) == 1);
     }
 
     /*
      * Returns true of the given cell is open & false otherwise
      */
     public boolean isFull(int row, int col) {
+        
         int thisNode = subToInd(row, col);
-        return unionFind.connected(topNodeIdx, thisNode);
+        return ((grid[unionFind.find(thisNode)] & TOP) == TOP);
     }
 
     /*
@@ -137,9 +151,6 @@ public class Percolation {
      * Returns true is the system percolates. False Otherwise 
      */
     public boolean percolates() {
-        if (!doesPercolate) {
-            doesPercolate = unionFind.connected(topNodeIdx, bottomNodeIdx); 
-        }
         return doesPercolate;
     }
 

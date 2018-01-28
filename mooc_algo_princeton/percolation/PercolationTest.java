@@ -20,9 +20,9 @@ public class PercolationTest {
             perc.open(i, j);
         }
         
-        assertEquals(perc.numberOfOpenSites(), 34);
-        assertEquals(perc.percolates(), true);
-        
+        assertEquals(34, perc.numberOfOpenSites());
+        assertEquals(true, perc.percolates());
+        assertEquals(true, perc.isFull(1, 3));
 	}
 
 }
