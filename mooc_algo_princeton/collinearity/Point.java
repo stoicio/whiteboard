@@ -15,7 +15,7 @@ public class Point implements Comparable<Point> {
 
     private final int x;     // x-coordinate of this point
     private final int y;     // y-coordinate of this point
-    
+//    private static final double EPSILON = 0.00001;
     private class SlopeOrder implements Comparator<Point> {
         
         public int compare(Point p1, Point p2) {
@@ -100,9 +100,9 @@ public class Point implements Comparable<Point> {
         
         
         if (this.y == that.y) {
-            return (int) (this.x - that.x);
+            return (this.x - that.x);
         } else {
-            return (int) (this.y - that.y);
+            return (this.y - that.y);
         }
     }
 
