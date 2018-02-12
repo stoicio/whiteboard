@@ -10,7 +10,7 @@ import edu.princeton.cs.algs4.StdOut;
 
 public class FastCollinearPoints {
     
-    private ArrayList<LineSegment> lineSegments;
+    private ArrayList<LineSegment> lineSegments = new ArrayList<LineSegment>();
     
     public FastCollinearPoints(Point[] pointsSource) {
         if (pointsSource == null) {
@@ -26,55 +26,52 @@ public class FastCollinearPoints {
         // Sort points according to their coordinates & check for null / duplicate points
         Point[] points = pointsSource.clone();
         Arrays.sort(points);
-        validateInputs(points);
         
-        lineSegments = new ArrayList<LineSegment>();
-        Point[] slopeOrderedPoints = points.clone();
+        for (int i = 1; i < points.length; i++) {
+            // Check Duplicates
+            if (points[i].compareTo(points[i-1]) == 0) {
+                    throw new IllegalArgumentException("Duplicate values found in points list");
+            }     
+        }
         
-        ArrayList<Point> thisSegmentPoints = new ArrayList<Point>();
+        Point[] sortedPts;
         
-        for (Point thisPoint: points) {
+        for (int i = 0; i < points.length - 3; i++) { // Current Origin point
+            sortedPts = points.clone();
+            // Sort auxillary array before and after the current origin point
+            Arrays.sort(sortedPts, 0, i, sortedPts[i].slopeOrder());
+            Arrays.sort(sortedPts, i + 1, points.length, sortedPts[i].slopeOrder());
             
-            Arrays.sort(slopeOrderedPoints, thisPoint.slopeOrder());
-            
-            for (int i = 1; i < points.length; i++) {
-                // Condition for collinearity
-                if (thisPoint.slopeTo(slopeOrderedPoints[i]) == thisPoint.slopeTo(slopeOrderedPoints[i-1])) {
-                    thisSegmentPoints.add(slopeOrderedPoints[i]);
-                } else {
-                    if (thisSegmentPoints.size() >= 4) {
-                        checkAndAddSegment(thisSegmentPoints);
+            for (int head = i + 1, tail = i + 2; tail < points.length; head = tail++) {
+                double currSlope = sortedPts[i].slopeTo(sortedPts[head]);
+                while ( (tail < points.length) &&
+                        (Double.compare(currSlope, sortedPts[i].slopeTo(sortedPts[tail])) == 0)) {
+                    // Move the tail till we reach the end or till we find a slope that is different
+                    // than the slope between the current origin and the first point being checked
+                    tail++;
+                }
+                
+                if (tail - head >= 3) {
+                    // If this segment is not already added, then create a line segment with these points
+                    double prevSlope = Double.NEGATIVE_INFINITY; // Initialize to a degenerate case
+                    int prevHead = 0;
+                    
+                    // If we had already found a segment with the same slope, then the first point of the 
+                    // array should contain atleast one point with the same slope.
+                    while (prevHead < i) {
+                        prevSlope = sortedPts[i].slopeTo(sortedPts[prevHead]);
+                        if (prevSlope >= currSlope) break; // Cross over point
+                        prevHead++;
                     }
-                    // Clear existing elements & add the current points for next pass through
-                    thisSegmentPoints.clear();
-                    thisSegmentPoints.add(thisPoint);
-                    thisSegmentPoints.add(slopeOrderedPoints[i]);
+                    
+                    // If prevSlope is same as currSlope then this is a overlapping segment already added
+                    if (prevSlope != currSlope) {
+                        lineSegments.add(new LineSegment(sortedPts[i], sortedPts[tail - 1]));
+                    }
                 }
             }
         }
     }
-    
-    // If the line segment formed by this set of collinear points is not already added,
-    // add it to the list. 
-    private void checkAndAddSegment(ArrayList<Point> pointsInSegment) {
-        Point[] points = pointsInSegment.toArray(new Point[pointsInSegment.size()]);
-        Arrays.sort(points);
-        LineSegment thisSegment = new LineSegment(points[0], points[pointsInSegment.size() - 1]);
-        
-        // StdOut.println("_______________New Segment__________");
-        for (LineSegment segment: lineSegments) {
-            // StdOut.println( "Comparing : " + thisSegment.toString() + " to " + segment.toString());
-            if (segment.toString().equals(thisSegment.toString())) {
-                // StdOut.println("Equal Skipping");
-                // Segment is already added. Skip adding this to list
-                return;
-            }
-        }
-        // StdOut.println("Not Found adding..");
-        lineSegments.add(thisSegment);
-    }
-    
-    
     
     public int numberOfSegments() {
         return lineSegments.size();
@@ -84,18 +81,12 @@ public class FastCollinearPoints {
         return lineSegments.toArray(new LineSegment[lineSegments.size()]);
     }
     
-    private void validateInputs(Point[] points) {
-        for (int i = 1; i < points.length; i++) {
-            if (points[i].compareTo(points[i-1]) == 0) {
-                throw new IllegalArgumentException("Invalid points in points list");
-            }
-        }
-    }
+    
     /**
      * @param args
      */
     public static void main(String[] args) {
-        In in = new In("./inputs/equidistant.txt");
+        In in = new In("./inputs/input56.txt");
         int numPoints = in.readInt();
         Point[] points = new Point[numPoints];
         
@@ -115,12 +106,11 @@ public class FastCollinearPoints {
         StdDraw.show();
         
         FastCollinearPoints bcp = new FastCollinearPoints(points);
-        
+        StdOut.println("Number of Segments " + Integer.toString((bcp.numberOfSegments())));
         for (LineSegment segment : bcp.segments()) {
             StdOut.println(segment);
             segment.draw();
         }
         StdDraw.show();
     }
-
 }
